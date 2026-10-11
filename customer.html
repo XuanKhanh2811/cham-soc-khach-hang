@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>HomeRent - Cổng Cư Dân (Customer)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --primary: #2563eb; --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b; --danger: #ef4444; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px 16px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    header { background: var(--card); padding: 16px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card { background: var(--card); padding: 20px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; }
+    button { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .ticket { border: 1px solid var(--border); padding: 14px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; }
+    .chat-box { background: #111827; color: #fff; padding: 12px; border-radius: 8px; height: 180px; overflow-y: auto; margin: 10px 0; }
+    .bubble { padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; max-width: 80%; }
+    .b-customer { background: var(--primary); margin-left: auto; }
+    .b-staff { background: #374151; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h2 style="color: var(--primary);">HomeRent - Cư Dân (Customer)</h2>
+      <p style="font-size: 13px; color: #64748b;">Gửi yêu cầu hỗ trợ và nhận phản hồi trực tiếp</p>
+    </div>
+    <div>
+      <select id="userSelector" onchange="switchUser(this.value)" style="padding: 6px; font-weight: 600;">
+        <option value="P.302|Lê Hoàng Nam">P.302 - Lê Hoàng Nam</option>
+        <option value="P.105|Phạm Thu Trang">P.105 - Phạm Thu Trang</option>
+        <option value="P.408|Hoàng Minh Tuấn">P.408 - Hoàng Minh Tuấn</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="card">
+    <h3>Tạo khiếu nại mới</h3>
+    <form id="ticketForm" style="margin-top: 12px;">
+      <div class="form-group">
+        <label>Danh mục sự cố:</label>
+        <select id="tCategory">
+          <option>Sự cố Điện / Nước</option>
+          <option>Hỏng hóc thiết bị</option>
+          <option>Cơ sở hạ tầng & Tiện ích</option>
+          <option>Hợp đồng & Tiền cọc</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tiêu đề tóm tắt:</label>
+        <input type="text" id="tTitle" placeholder="Ví dụ: Rò rỉ vòi nước" required>
+      </div>
+      <div class="form-group">
+        <label>Nội dung chi tiết:</label>
+        <textarea id="tDesc" rows="2" placeholder="Mô tả sự cố..." required></textarea>
+      </div>
+      <button type="submit" style="width: 100%;">Gửi phiếu hỗ trợ</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Danh sách khiếu nại của bạn (<span id="roomTitle">P.302</span>)</h3>
+    <div id="ticketContainer" style="margin-top: 12px;"></div>
+  </div>
+</div>
+
+<script>
+  function getData() { return JSON.parse(localStorage.getItem('homerent_tickets') || '[]'); }
+  function setData(d) { localStorage.setItem('homerent_tickets', JSON.stringify(d)); }
+  function getUser() { return JSON.parse(localStorage.getItem('hr_curr_user') || '{"room":"P.302","name":"Lê Hoàng Nam"}'); }
+
+  function switchUser(val) {
+    const [room, name] = val.split('|');
+    localStorage.setItem('hr_curr_user', JSON.stringify({ room, name }));
+    document.getElementById('roomTitle').innerText = room;
+    render();
+  }
+
+  function render() {
+    const u = getUser();
+    document.getElementById('userSelector').value = `${u.room}|${u.name}`;
+    document.getElementById('roomTitle').innerText = u.room;
+    const box = document.getElementById('ticketContainer');
+    box.innerHTML = '';
+    const myTickets = getData().filter(t => t.room === u.room);
+    if (!myTickets.length) return box.innerHTML = '<p style="color:#64748b;">Chưa có khiếu nại nào.</p>';
+
+    myTickets.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'ticket';
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between;">
+          <strong>#TK${t.id} - ${t.title}</strong>
+          <span style="font-weight:bold; color:var(--primary); font-size:12px;">${t.status}</span>
+        </div>
+        <div style="font-size:12px; color:#64748b; margin: 4px 0;">Loại: ${t.category} | Nhân viên phụ trách: <strong>${t.assignedStaff || 'Chờ phân công'}</strong></div>
+        <p style="font-size:13px;">${t.desc}</p>
+        <div class="chat-box" id="chat_${t.id}">
+          ${(t.chats || []).map(c => `<div class="bubble ${c.sender === 'customer' ? 'b-customer' : 'b-staff'}"><b>${c.name}:</b>${c.text}</div>`).join('')}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="inp_${t.id}" placeholder="Nhắn tin với nhân viên...">
+          <button onclick="sendMsg(${t.id})">Gửi</button>
+        </div>
+      `;
+      box.appendChild(el);
+    });
+  }
+
+  function sendMsg(id) {
+    const inp = document.getElementById(`inp_${id}`);
+    const txt = inp.value.trim();
+    if (!txt) return;
+    const data = getData();
+    const t = data.find(x => x.id === id);
+    if (t) {
+      t.chats = t.chats || [];
+      t.chats.push({ sender: 'customer', name: getUser().name, text: txt });
+      t.unreadStaff = (t.unreadStaff || 0) + 1;
+      setData(data);
+      inp.value = '';
+      render();
+    }
+  }
+
+  document.getElementById('ticketForm').onsubmit = (e) => {
+    e.preventDefault();
+    const u = getUser();
+    const data = getData();
+    const newId = Math.floor(100 + Math.random() * 900);
+    data.unshift({
+      id: newId,
+      room: u.room,
+      sender: u.name,
+      category: document.getElementById('tCategory').value,
+      title: document.getElementById('tTitle').value.trim(),
+      desc: document.getElementById('tDesc').value.trim(),
+      status: 'Pending',
+      assignedStaff: null,
+      chats: [{ sender: 'customer', name: u.name, text: document.getElementById('tDesc').value.trim() }]
+    });
+    setData(data);
+    document.getElementById('tTitle').value = '';
+    document.getElementById('tDesc').value = '';
+    render();
+  };
+
+  window.addEventListener('storage', render);
+  render();
+</script>
+</body>
+</html>

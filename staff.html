@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>HomeRent - Kỹ Thuật Viên (Staff View)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --primary: #059669; --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px 16px; }
+    .container { max-width: 850px; margin: 0 auto; }
+    header { background: var(--card); padding: 16px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card { background: var(--card); padding: 16px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 14px; }
+    .chat-box { background: #111827; color: #fff; padding: 10px; border-radius: 8px; height: 160px; overflow-y: auto; margin: 10px 0; }
+    .bubble { padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; max-width: 80%; }
+    .b-staff { background: var(--primary); margin-left: auto; }
+    .b-cust { background: #374151; }
+    button { background: var(--primary); color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    select, input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h2 style="color: var(--primary);">HomeRent - Đội Kỹ Thuật (Staff)</h2>
+      <p style="font-size: 13px; color: #64748b;">Xem công việc được phân công, cập nhật xử lý & chat hẹn giờ</p>
+    </div>
+    <div>
+      <label style="font-size: 12px; font-weight: bold;">Nhân viên:</label>
+      <select id="staffName" onchange="render()">
+        <option value="Nguyễn Văn Thu">Nguyễn Văn Thu (Điện Nước)</option>
+        <option value="Trần Đình Trọng">Trần Đình Trọng (Điện Lạnh)</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="staffTickets"></div>
+</div>
+
+<script>
+  function getData() { return JSON.parse(localStorage.getItem('homerent_tickets') || '[]'); }
+  function setData(d) { localStorage.setItem('homerent_tickets', JSON.stringify(d)); }
+
+  function render() {
+    const curStaff = document.getElementById('staffName').value;
+    const box = document.getElementById('staffTickets');
+    box.innerHTML = '';
+    const assigned = getData().filter(t => t.assignedStaff === curStaff);
+
+    if (!assigned.length) {
+      box.innerHTML = `<div class="card" style="text-align:center; color:#64748b;">Hiện chưa có công việc nào được Quản lý phân công cho ${curStaff}.</div>`;
+      return;
+    }
+
+    assigned.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="font-size:16px;">#TK${t.id} - Phòng ${t.room} (${t.sender})</strong>
+          <div>
+            <select id="st_${t.id}" style="font-size:12px;">
+              <option value="In_Progress" ${t.status === 'In_Progress' ? 'selected' : ''}>Đang xử lý</option>
+              <option value="Resolved" ${t.status === 'Resolved' ? 'selected' : ''}>Đã sửa xong</option>
+            </select>
+            <button onclick="updateStatus(${t.id})">Lưu trạng thái</button>
+          </div>
+        </div>
+        <p style="font-size:13px; color:#475569; margin: 6px 0;"><b>Sự cố:</b> ${t.title} - ${t.desc}</p>
+        <div class="chat-box">
+          ${(t.chats || []).map(c => `<div class="bubble ${c.sender === 'customer' ? 'b-cust' : 'b-staff'}"><b>${c.name}:</b>${c.text}</div>`).join('')}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="inp_${t.id}" style="flex:1;" placeholder="Nhắn hẹn giờ sửa chữa với khách...">
+          <button onclick="reply(${t.id})">Gửi</button>
+        </div>
+      `;
+      box.appendChild(el);
+    });
+  }
+
+  function updateStatus(id) {
+    const st = document.getElementById(`st_${id}`).value;
+    const data = getData();
+    const t = data.find(x => x.id === id);
+    if (t) {
+      t.status = st;
+      setData(data);
+      alert('Đã cập nhật tiến độ công việc!');
+      render();
+    }
+  }
+
+  function reply(id) {
+    const inp = document.getElementById(`inp_${id}`);
+    const txt = inp.value.trim();
+    if (!txt) return;
+    const curStaff = document.getElementById('staffName').value;
+    const data = getData();
+    const t = data.find(x => x.id === id);
+    if (t) {
+      t.chats = t.chats || [];
+      t.chats.push({ sender: 'staff', name: `Kỹ thuật (${curStaff})`, text: txt });
+      t.unreadCustomer = (t.unreadCustomer || 0) + 1;
+      setData(data);
+      inp.value = '';
+      render();
+    }
+  }
+
+  window.addEventListener('storage', render);
+  render();
+</script>
+</body>
+</html>

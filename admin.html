@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HomeRent - Trung Tâm Điều Hành & Giám Sát Toàn Diện (Super Admin View)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --border-dark: #334155;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #ef4444;
+      --accent-purple: #7c3aed;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f1f5f9; color: var(--text-main); padding: 24px 16px; line-height: 1.5; padding-bottom: 100px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* HEADER BANNER */
+    header {
+      background: #ffffff;
+      padding: 18px 24px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      border: 1px solid var(--border);
+    }
+    .header-info h1 { font-size: 20px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    .header-info p { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .admin-badge {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #fecaca;
+    }
+
+    /* DASHBOARD METRICS CARDS */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 820px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .metrics-grid { grid-template-columns: 1fr; } }
+
+    .metric-card {
+      background: #ffffff;
+      padding: 18px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; width: 4px; height: 100%;
+    }
+    .metric-total::before { background: var(--accent-purple); }
+    .metric-pending::before { background: var(--warning); }
+    .metric-prog::before { background: var(--primary); }
+    .metric-done::before { background: var(--success); }
+
+    .metric-title { font-size: 12.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-num { font-size: 28px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+    .metric-desc { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
+
+    /* BỘ LỌC TÌM KIẾM ĐA TIÊU CHÍ */
+    .filter-panel {
+      background: #ffffff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    @media (max-width: 850px) { .filter-panel { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 550px) { .filter-panel { grid-template-columns: 1fr; } }
+
+    .filter-panel input, .filter-panel select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      background: #f8fafc;
+      transition: 0.15s ease;
+    }
+    .filter-panel input:focus, .filter-panel select:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+    .btn-reset {
+      background: #e2e8f0;
+      color: #334155;
+      border: none;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-reset:hover { background: #cbd5e1; }
+
+    /* DANH SÁCH THẺ TICKET CỦA ADMIN */
+    .ticket-list { display: flex; flex-direction: column; gap: 14px; }
+    .admin-ticket-card {
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .admin-ticket-card:hover { border-color: #93c5fd; box-shadow: 0 4px 12px rgba(37,99,235,0.08); }
+    .admin-ticket-card.unread-border { border-color: #3b82f6; background: #fafcff; }
+
+    .card-badge-unread {
+      position: absolute;
+      top: -8px;
+      right: 18px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+    }
+
+    .ticket-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .ticket-title { font-size: 15.5px; font-weight: 700; color: #0f172a; }
+    .ticket-meta { font-size: 12.5px; color: var(--text-muted); margin-bottom: 8px; }
+    .ticket-meta strong { color: #1e293b; }
+    .ticket-desc { font-size: 13.5px; color: #334155; margin-bottom: 14px; line-height: 1.5; }
+
+    .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; }
+    .status-pending { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
+    .status-in_progress { background: #e0f2fe; color: var(--primary); border: 1px solid #bae6fd; }
+    .status-resolved { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
+
+    .ticket-actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 12px;
+    }
+    .btn-chat-trigger {
+      background: #f1f5f9;
+      color: var(--primary);
+      border: 1px solid #cbd5e1;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: 0.15s;
+    }
+    .btn-chat-trigger:hover { background: #e2e8f0; }
+
+    .admin-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .admin-controls select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 12.5px;
+      font-weight: 600;
+      outline: none;
+      background: #fff;
+    }
+    .btn-save-status {
+      background: #0f172a;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save-status:hover { background: #334155; }
+    .btn-del-ticket {
+      background: #fee2e2;
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-del-ticket:hover { background: #fecaca; }
+
+    /* WIDGET BUBBLE CHAT MESSENGER NỔI */
+    .chat-widget-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 999;
+      transition: transform 0.2s ease;
+    }
+    .chat-widget-btn:hover { transform: scale(1.06); }
+    .chat-widget-btn svg { width: 30px; height: 30px; fill: white; }
+    .widget-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: var(--danger);
+      color: white;
+      font-size: 11px;
+      font-weight: bold;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+    }
+
+    /* POPUP CHAT DỌC DARK THEME */
+    .mini-chat-popup {
+      position: fixed;
+      bottom: 96px;
+      right: 24px;
+      width: 380px;
+      height: 560px;
+      background: #111827;
+      color: #f3f4f6;
+      border-radius: 16px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.45);
+      border: 1px solid #374151;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .mini-chat-header {
+      background: #1f2937;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #374151;
+    }
+    .back-btn { cursor: pointer; font-size: 16px; margin-right: 8px; }
+    .mini-chat-close { cursor: pointer; font-size: 18px; color: #9ca3af; }
+    .mini-chat-close:hover { color: #fff; }
+
+    /* DANH SÁCH DỌC CÁC PHÒNG */
+    .user-list-vertical { flex: 1; overflow-y: auto; padding: 6px 0; display: flex; flex-direction: column; }
+    .user-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      gap: 12px;
+      transition: background 0.15s;
+      border-bottom: 1px solid rgba(55, 65, 81, 0.4);
+    }
+    .user-row:hover { background: #1f2937; }
+    .avatar-wrap { position: relative; width: 44px; height: 44px; flex-shrink: 0; }
+    .avatar-img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #374151;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .online-dot {
+      position: absolute;
+      bottom: 1px; right: 1px;
+      width: 10px; height: 10px;
+      background: #22c55e;
+      border: 2px solid #111827;
+      border-radius: 50%;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .user-name { font-size: 13.5px; font-weight: 600; color: #f9fafb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .msg-preview { font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* VIEW TIN NHẮN CHI TIẾT */
+    .chat-view { flex: 1; display: none; flex-direction: column; height: 100%; }
+    .chat-messages-container {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #111827;
+    }
+    .chat-bubble { max-width: 82%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; word-break: break-word; }
+    .chat-bubble.manager { align-self: flex-end; background: var(--primary); color: #ffffff; }
+    .chat-bubble.renter { align-self: flex-start; background: #1f2937; color: #f3f4f6; border: 1px solid #374151; }
+    .chat-sender { font-size: 10px; font-weight: bold; opacity: 0.75; margin-bottom: 2px; }
+
+    .chat-input-bar {
+      padding: 10px 14px;
+      border-top: 1px solid #374151;
+      background: #1f2937;
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input-bar input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      font-size: 13px;
+      background: #111827;
+      color: #fff;
+      outline: none;
+    }
+    .chat-input-bar button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .chat-input-bar button:hover { background: var(--primary-dark); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- HEADER -->
+  <header>
+    <div class="header-info">
+      <h1>🛡️ HomeRent - Trung Tâm Điều Hành & Giám Sát (RR7)</h1>
+      <p>Bảng điều khiển Super Admin: Quản lý danh mục, điều phối tiến độ và trao đổi trực tiếp toàn hệ thống</p>
+    </div>
+    <div class="admin-badge">
+      <span>●</span> Toàn quyền Quản Trị Hệ Thống (Super Admin)
+    </div>
+  </header>
+
+  <!-- 4 THẺ METRICS DASHBOARD QUAN SÁT -->
+  <div class="metrics-grid">
+    <div class="metric-card metric-total">
+      <div class="metric-title">Tổng số khiếu nại</div>
+      <div class="metric-num" id="metricTotal">0</div>
+      <div class="metric-desc">Tất cả các phòng trong tòa nhà</div>
+    </div>
+    <div class="metric-card metric-pending">
+      <div class="metric-title">Chờ tiếp nhận</div>
+      <div class="metric-num" id="metricPending" style="color: var(--warning);">0</div>
+      <div class="metric-desc">Cần phân công kỹ thuật viên</div>
+    </div>
+    <div class="metric-card metric-prog">
+      <div class="metric-title">Đang xử lý</div>
+      <div class="metric-num" id="metricProg" style="color: var(--primary);">0</div>
+      <div class="metric-desc">Kỹ thuật đang kiểm tra / sửa chữa</div>
+    </div>
+    <div class="metric-card metric-done">
+      <div class="metric-title">Đã hoàn thành</div>
+      <div class="metric-num" id="metricDone" style="color: var(--success);">0</div>
+      <div class="metric-desc">Cư dân đã nghiệm thu & đánh giá</div>
+    </div>
+  </div>
+
+  <!-- BỘ LỌC TÌM KIẾM ĐA NĂNG -->
+  <div class="filter-panel">
+    <input type="text" id="filterKeyword" placeholder="🔍 Tìm theo mã (#TK..), số phòng (P.302..), họ tên hoặc sự cố..." oninput="renderAdminDashboard()">
+    <select id="filterCategory" onchange="renderAdminDashboard()">
+      <option value="all">Tất cả danh mục sự cố</option>
+      <option value="Sự cố Điện / Nước">Sự cố Điện / Nước</option>
+      <option value="Hỏng hóc thiết bị căn hộ">Hỏng hóc thiết bị căn hộ</option>
+      <option value="Cơ sở hạ tầng & Tiện ích">Cơ sở hạ tầng & Tiện ích</option>
+      <option value="Hợp đồng, Phí dịch vụ & Tiền cọc">Hợp đồng, Phí dịch vụ & Tiền cọc</option>
+      <option value="An ninh & Trật tự công cộng">An ninh & Trật tự công cộng</option>
+    </select>
+    <select id="filterStatus" onchange="renderAdminDashboard()">
+      <option value="all">Tất cả trạng thái</option>
+      <option value="Pending">Chờ xử lý (Pending)</option>
+      <option value="In_Progress">Đang xử lý (In-Progress)</option>
+      <option value="Resolved">Đã hoàn thành (Resolved)</option>
+    </select>
+    <button class="btn-reset" onclick="resetFilters()">↺ Làm mới lọc</button>
+  </div>
+
+  <!-- DANH SÁCH THẺ PHIẾU CỦA ADMIN -->
+  <div class="ticket-list" id="adminTicketsContainer"></div>
+</div>
+
+<!-- NÚT BẬT CHAT NỔI MESSENGER DỌC GÓC DƯỚI BÊN PHẢI -->
+<div class="chat-widget-btn" onclick="toggleMiniChat()">
+  <span class="widget-badge" id="totalAdminUnreadBadge" style="display: none;">0</span>
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/></svg>
+</div>
+
+<!-- POPUP CHAT DỌC ĐỒNG BỘ TIN NHẮN (DARK THEME) -->
+<div class="mini-chat-popup" id="miniChatPopup">
+  <div class="mini-chat-header">
+    <div style="display: flex; align-items: center;">
+      <span class="back-btn" id="backToListBtn" style="display: none;" onclick="showChatList()">←</span>
+      <span id="miniChatTitle">Hộp thư hỗ trợ cư dân</span>
+    </div>
+    <span class="mini-chat-close" onclick="toggleMiniChat()">✕</span>
+  </div>
+
+  <!-- VIEW 1: DANH SÁCH DỌC TẤT CẢ CÁC PHÒNG CẦN HỖ TRỢ -->
+  <div class="user-list-vertical" id="chatListVertical"></div>
+
+  <!-- VIEW 2: MÀN HÌNH CHAT CHI TIẾT TỪNG PHIẾU -->
+  <div class="chat-view" id="chatView">
+    <div class="chat-messages-container" id="chatMessagesBox"></div>
+    <div class="chat-input-bar">
+      <input type="text" id="miniChatInput" placeholder="Nhắn phản hồi đến cư dân..." onkeydown="if(event.key==='Enter') sendAdminMessage()">
+      <button onclick="sendAdminMessage()">Gửi tin</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // DỮ LIỆU SEED ĐỒNG BỘ 100% CSDL MYSQL (6 PHÒNG ĐA DẠNG NGHIỆP VỤ)
+  const SEED_TICKETS = [
+    {
+      id: 101,
+      room: "P.302",
+      sender: "Lê Hoàng Nam",
+      category: "Sự cố Điện / Nước",
+      title: "Vòi sen phòng tắm bị rò rỉ nước",
+      desc: "Vòi sen rò ở chân van từ tối qua làm ướt sàn nhà vệ sinh.",
+      status: "In_Progress",
+      assignedStaff: "Nguyễn Văn Thu (Điện Nước)",
+      unreadManager: 0,
+      unreadCustomer: 1,
+      chats: [
+        { sender: "renter", name: "Khách (P.302)", text: "Vòi sen rò chân van từ tối qua, nhờ anh kỹ thuật ghé xem giúp ạ." },
+        { sender: "manager", name: "BQL (Kỹ thuật)", text: "Chào bạn Nam, 14h chiều nay kỹ thuật bên mình sẽ sang thay ron cao su nhé." }
+      ]
+    },
+    {
+      id: 102,
+      room: "P.105",
+      sender: "Phạm Thu Trang",
+      category: "Hỏng hóc thiết bị căn hộ",
+      title: "Máy lạnh phòng ngủ không làm mát",
+      desc: "Bật 16 độ cả tiếng nhưng chỉ có gió thoảng, nhờ thợ kiểm tra bảo dưỡng gas.",
+      status: "Resolved",
+      assignedStaff: "Trần Đình Trọng (Điện Lạnh)",
+      unreadManager: 0,
+      unreadCustomer: 0,
+      chats: [
+        { sender: "renter", name: "Khách (P.105)", text: "Máy lạnh phòng 105 bật mãi không mát ạ." },
+        { sender: "manager", name: "BQL (Kỹ thuật)", text: "Thợ đã nạp gas R32 và vệ sinh lưới lọc hoàn tất rồi bạn nhé." }
+      ]
+    },
+    {
+      id: 103,
+      room: "P.408",
+      sender: "Hoàng Minh Tuấn",
+      category: "Cơ sở hạ tầng & Tiện ích",
+      title: "Khóa cửa thông minh báo pin yếu và kẹt chốt",
+      desc: "Khóa cửa phát tiếng kêu bíp liên tục và mở bằng mã số rất khó khăn.",
+      status: "Pending",
+      assignedStaff: "Nguyễn Văn Thu (Điện Nước)",
+      unreadManager: 1,
+      unreadCustomer: 0,
+      chats: [
+        { sender: "renter", name: "Khách (P.408)", text: "Khóa cửa kêu tít tít từ sáng, nhờ BQL cho thợ đổi pin giúp mình." }
+      ]
+    },
+    {
+      id: 104,
+      room: "P.204",
+      sender: "Đặng Mai Lan",
+      category: "Hợp đồng, Phí dịch vụ & Tiền cọc",
+      title: "Sai lệch chỉ số tiền điện nước tháng 09/2026",
+      desc: "Phòng mình đi công tác 2 tuần nhưng số điện lại tăng gấp đôi so với tháng trước.",
+      status: "In_Progress",
+      assignedStaff: "Kế toán Tòa Nhà",
+      unreadManager: 0,
+      unreadCustomer: 1,
+      chats: [
+        { sender: "renter", name: "Khách (P.204)", text: "Nhờ ban quản lý kiểm tra lại đồng hồ cơ giúp mình nhé." },
+        { sender: "manager", name: "BQL (Kế toán)", text: "Chào chị Lan, kế toán đang rà soát lại ảnh chụp công tơ đầu tháng và sẽ báo lại ngay." }
+      ]
+    },
+    {
+      id: 105,
+      room: "P.501",
+      sender: "Võ Quốc Anh",
+      category: "An ninh & Trật tự công cộng",
+      title: "Phòng bên cạnh mở nhạc to quá giờ quy định",
+      desc: "Căn phòng bên cạnh mở nhạc to và ồn ào lúc 23h30 làm ảnh hưởng giấc ngủ.",
+      status: "Pending",
+      assignedStaff: "Đội Bảo Vệ Trực Ca",
+      unreadManager: 1,
+      unreadCustomer: 0,
+      chats: [
+        { sender: "renter", name: "Khách (P.501)", text: "Nhờ bảo vệ nhắc nhở phòng bên cạnh giữ trật tự chung giúp mình với ạ." }
+      ]
+    }
+  ];
+
+  function getTickets() {
+    const raw = localStorage.getItem('homerent_tickets');
+    if (!raw) {
+      localStorage.setItem('homerent_tickets', JSON.stringify(SEED_TICKETS));
+      return SEED_TICKETS;
+    }
+    return JSON.parse(raw);
+  }
+
+  function saveTickets(data) {
+    localStorage.setItem('homerent_tickets', JSON.stringify(data));
+  }
+
+  let selectedTicketId = null;
+  let isMiniChatOpen = false;
+
+  // 1. RENDER BẢNG ĐIỀU HÀNH ADMIN
+  function renderAdminDashboard() {
+    const container = document.getElementById('adminTicketsContainer');
+    container.innerHTML = "";
+
+    const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+    const cat = document.getElementById('filterCategory').value;
+    const st = document.getElementById('filterStatus').value;
+
+    let allTickets = getTickets();
+
+    // Thống kê Metrics
+    document.getElementById('metricTotal').innerText = allTickets.length;
+    document.getElementById('metricPending').innerText = allTickets.filter(x => x.status === 'Pending').length;
+    document.getElementById('metricProg').innerText = allTickets.filter(x => x.status === 'In_Progress').length;
+    document.getElementById('metricDone').innerText = allTickets.filter(x => x.status === 'Resolved').length;
+
+    // Badge tin nhắn chưa đọc tổng thể
+    const totalUnread = allTickets.reduce((sum, item) => sum + (item.unreadManager || 0), 0);
+    const badge = document.getElementById('totalAdminUnreadBadge');
+    badge.innerText = totalUnread;
+    badge.style.display = totalUnread > 0 ? 'flex' : 'none';
+
+    // Lọc dữ liệu
+    const filtered = allTickets.filter(t => {
+      const matchKeyword = !keyword ||
+        t.title.toLowerCase().includes(keyword) ||
+        t.desc.toLowerCase().includes(keyword) ||
+        t.room.toLowerCase().includes(keyword) ||
+        t.sender.toLowerCase().includes(keyword) ||
+        String(t.id).includes(keyword);
+
+      const matchCat = cat === 'all' || t.category === cat;
+      const matchSt = st === 'all' || t.status === st;
+
+      return matchKeyword && matchCat && matchSt;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 48px; background: #fff; border-radius: 12px; border: 1px solid var(--border); color: var(--text-muted); font-size: 14px;">
+          Không tìm thấy khiếu nại nào phù hợp với điều kiện tìm kiếm.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(t => {
+      const isUnread = t.unreadManager > 0;
+      const card = document.createElement('div');
+      card.className = `admin-ticket-card ${isUnread ? 'unread-border' : ''}`;
+
+      card.innerHTML = `
+        ${isUnread ? `<span class="card-badge-unread">● ${t.unreadManager} tin nhắn mới</span>` : ''}
+        <div class="ticket-top">
+          <span class="ticket-title">#TK${t.id} - ${t.title}</span>
+          ${getStatusBadge(t.status)}
+        </div>
+        <div class="ticket-meta">
+          Phòng: <strong>${t.room}</strong> | Cư dân: <strong>${t.sender}</strong> | Phân loại: <strong>${t.category}</strong>
+        </div>
+        <div class="ticket-desc">${t.desc}</div>
+        <div class="ticket-actions-bar">
+          <button class="btn-chat-trigger" onclick="openChatDetail(${t.id})">
+            💬 Mở chat hội thoại (${(t.chats || []).length} tin)
+          </button>
+          
+          <div class="admin-controls">
+            <label style="font-size: 12px; font-weight: bold; color: var(--text-muted);">Trạng thái:</label>
+            <select id="sel_st_${t.id}">
+              <option value="Pending" ${t.status === 'Pending' ? 'selected' : ''}>Chờ xử lý</option>
+              <option value="In_Progress" ${t.status === 'In_Progress' ? 'selected' : ''}>Đang xử lý</option>
+              <option value="Resolved" ${t.status === 'Resolved' ? 'selected' : ''}>Đã hoàn thành</option>
+            </select>
+
+            <label style="font-size: 12px; font-weight: bold; color: var(--text-muted);">Gán phụ trách:</label>
+            <select id="sel_staff_${t.id}">
+              <option value="Nguyễn Văn Thu (Điện Nước)" ${t.assignedStaff === 'Nguyễn Văn Thu (Điện Nước)' ? 'selected' : ''}>Nguyễn Văn Thu (Điện Nước)</option>
+              <option value="Trần Đình Trọng (Điện Lạnh)" ${t.assignedStaff === 'Trần Đình Trọng (Điện Lạnh)' ? 'selected' : ''}>Trần Đình Trọng (Điện Lạnh)</option>
+              <option value="Đội Bảo Vệ Trực Ca" ${t.assignedStaff === 'Đội Bảo Vệ Trực Ca' ? 'selected' : ''}>Đội Bảo Vệ Trực Ca</option>
+              <option value="Kế toán Tòa Nhà" ${t.assignedStaff === 'Kế toán Tòa Nhà' ? 'selected' : ''}>Kế toán Tòa Nhà</option>
+            </select>
+
+            <button class="btn-save-status" onclick="updateTicketMeta(${t.id})">Lưu thay đổi</button>
+            <button class="btn-del-ticket" onclick="deleteTicket(${t.id})">Xóa</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function getStatusBadge(st) {
+    if (st === 'Pending') return '<span class="status-pill status-pending">Chờ xử lý</span>';
+    if (st === 'In_Progress') return '<span class="status-pill status-in_progress">Đang xử lý</span>';
+    return '<span class="status-pill status-resolved">Đã hoàn thành</span>';
+  }
+
+  function updateTicketMeta(id) {
+    const newStatus = document.getElementById(`sel_st_${id}`).value;
+    const newStaff = document.getElementById(`sel_staff_${id}`).value;
+
+    let tickets = getTickets();
+    let t = tickets.find(x => x.id === id);
+    if (t) {
+      t.status = newStatus;
+      t.assignedStaff = newStaff;
+      saveTickets(tickets);
+      alert(`Đã cập nhật trạng thái phiếu #TK${id} thành công!`);
+      renderAdminDashboard();
+    }
+  }
+
+  function deleteTicket(id) {
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn phiếu khiếu nại #TK${id}?`)) {
+      let tickets = getTickets().filter(x => x.id !== id);
+      saveTickets(tickets);
+      renderAdminDashboard();
+    }
+  }
+
+  function resetFilters() {
+    document.getElementById('filterKeyword').value = "";
+    document.getElementById('filterCategory').value = "all";
+    document.getElementById('filterStatus').value = "all";
+    renderAdminDashboard();
+  }
+
+  // 2. KHUNG POPUP CHAT DỌC DARK THEME
+  function toggleMiniChat() {
+    isMiniChatOpen = !isMiniChatOpen;
+    const popup = document.getElementById('miniChatPopup');
+    popup.style.display = isMiniChatOpen ? 'flex' : 'none';
+    if (isMiniChatOpen) showChatList();
+  }
+
+  function showChatList() {
+    document.getElementById('chatListVertical').style.display = 'flex';
+    document.getElementById('chatView').style.display = 'none';
+    document.getElementById('backToListBtn').style.display = 'none';
+    document.getElementById('miniChatTitle').innerText = 'Hộp thư hỗ trợ cư dân';
+
+    const container = document.getElementById('chatListVertical');
+    container.innerHTML = "";
+    const tickets = getTickets();
+
+    tickets.forEach(t => {
+      const isUnread = t.unreadManager > 0;
+      const lastMsg = t.chats && t.chats.length > 0 ? t.chats[t.chats.length - 1].text : t.desc;
+
+      const row = document.createElement('div');
+      row.className = 'user-row';
+      row.onclick = () => openChatDetail(t.id);
+
+      row.innerHTML = `
+        <div class="avatar-wrap">
+          <div class="avatar-img">${t.room}</div>
+          <span class="online-dot"></span>
+        </div>
+        <div class="user-info">
+          <div class="user-name-row">
+            <span class="user-name">${t.room} - ${t.sender} (#TK${t.id})</span>
+            ${isUnread ? `<span style="background: var(--danger); color: #fff; font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 10px;">${t.unreadManager}</span>` : ''}
+          </div>
+          <div class="msg-preview">${lastMsg}</div>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function openChatDetail(id) {
+    selectedTicketId = id;
+    if (!isMiniChatOpen) {
+      isMiniChatOpen = true;
+      document.getElementById('miniChatPopup').style.display = 'flex';
+    }
+
+    let tickets = getTickets();
+    let currentTicket = tickets.find(t => t.id === id);
+    if (!currentTicket) return;
+
+    currentTicket.unreadManager = 0;
+    saveTickets(tickets);
+
+    document.getElementById('chatListVertical').style.display = 'none';
+    document.getElementById('chatView').style.display = 'flex';
+    document.getElementById('backToListBtn').style.display = 'inline-block';
+    document.getElementById('miniChatTitle').innerText = `${currentTicket.room} - ${currentTicket.title}`;
+
+    renderMessages(currentTicket);
+    renderAdminDashboard();
+  }
+
+  function renderMessages(ticket) {
+    const box = document.getElementById('chatMessagesBox');
+    box.innerHTML = "";
+
+    (ticket.chats || []).forEach(c => {
+      const bubble = document.createElement('div');
+      bubble.className = `chat-bubble ${c.sender === 'renter' ? 'renter' : 'manager'}`;
+      bubble.innerHTML = `
+        <div class="chat-sender">${c.name}</div>
+        ${c.text}
+      `;
+      box.appendChild(bubble);
+    });
+
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function sendAdminMessage() {
+    const input = document.getElementById('miniChatInput');
+    const msg = input.value.trim();
+    if (!msg || !selectedTicketId) return;
+
+    let tickets = getTickets();
+    let t = tickets.find(x => x.id === selectedTicketId);
+    if (t) {
+      t.chats = t.chats || [];
+      t.chats.push({ sender: 'manager', name: 'Ban Quản Lý (Admin)', text: msg });
+      t.unreadCustomer = (t.unreadCustomer || 0) + 1; // Báo unread sang cho khách thuê ở user.html
+      saveTickets(tickets);
+      input.value = "";
+      renderMessages(t);
+      renderAdminDashboard();
+    }
+  }
+
+  // LẮNG NGHE REALTIME STORAGE TỪ CÁC TAB KHÁC
+  window.addEventListener('storage', () => {
+    renderAdminDashboard();
+    if (isMiniChatOpen) {
+      if (document.getElementById('chatView').style.display === 'flex' && selectedTicketId) {
+        const cur = getTickets().find(t => t.id === selectedTicketId);
+        if (cur) renderMessages(cur);
+      } else {
+        showChatList();
+      }
+    }
+  });
+
+  // KHỞI CHẠY LẦN ĐẦU
+  renderAdminDashboard();
+</script>
+
+</body>
+</html>

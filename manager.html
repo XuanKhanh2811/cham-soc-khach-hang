@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>HomeRent - Quản Lý Tòa Nhà (Manager View)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --primary: #d97706; --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px 16px; }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { background: var(--card); padding: 16px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    th, td { padding: 12px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+    th { background: #f1f5f9; font-weight: 700; }
+    button { background: var(--primary); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h2 style="color: var(--primary);">HomeRent - Quản Lý Tòa Nhà (Manager)</h2>
+      <p style="font-size: 13px; color: #64748b;">Điều phối, phê duyệt và gán nhân viên phụ trách ticket</p>
+    </div>
+    <span style="background:#fef3c7; color:#b45309; padding:6px 12px; border-radius:20px; font-weight:bold; font-size:12px;">Quyền Điều Phối</span>
+  </header>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Mã</th>
+        <th>Phòng / Cư dân</th>
+        <th>Sự cố & Nội dung</th>
+        <th>Trạng thái</th>
+        <th>Phân công Kỹ thuật (Staff)</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody id="managerTable"></tbody>
+  </table>
+</div>
+
+<script>
+  function getData() { return JSON.parse(localStorage.getItem('homerent_tickets') || '[]'); }
+  function setData(d) { localStorage.setItem('homerent_tickets', JSON.stringify(d)); }
+
+  function render() {
+    const list = getData();
+    const tb = document.getElementById('managerTable');
+    tb.innerHTML = '';
+
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b;">Chưa có yêu cầu nào.</td></tr>';
+      return;
+    }
+
+    list.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>#TK${t.id}</b></td>
+        <td><b>${t.room}</b><br><span style="color:#64748b; font-size:11px;">${t.sender}</span></td>
+        <td><b>${t.title}</b><br><span style="color:#64748b; font-size:11px;">${t.desc}</span></td>
+        <td><span style="font-weight:bold; color:${t.status==='Pending'?'#d97706':'#059669'};">${t.status}</span></td>
+        <td>
+          <select id="staff_${t.id}">
+            <option value="">-- Chọn Staff --</option>
+            <option value="Nguyễn Văn Thu" ${t.assignedStaff === 'Nguyễn Văn Thu' ? 'selected' : ''}>Nguyễn Văn Thu (Điện Nước)</option>
+            <option value="Trần Đình Trọng" ${t.assignedStaff === 'Trần Đình Trọng' ? 'selected' : ''}>Trần Đình Trọng (Điện Lạnh)</option>
+          </select>
+        </td>
+        <td>
+          <button onclick="assign(${t.id})">Phân công</button>
+        </td>
+      `;
+      tb.appendChild(tr);
+    });
+  }
+
+  function assign(id) {
+    const stName = document.getElementById(`staff_${id}`).value;
+    if (!stName) return alert('Vui lòng chọn nhân viên phụ trách!');
+    const data = getData();
+    const t = data.find(x => x.id === id);
+    if (t) {
+      t.assignedStaff = stName;
+      if (t.status === 'Pending') t.status = 'In_Progress';
+      setData(data);
+      alert(`Đã phân công vé #TK${id} cho thợ ${stName}!`);
+      render();
+    }
+  }
+
+  window.addEventListener('storage', render);
+  render();
+</script>
+</body>
+</html>
