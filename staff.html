@@ -485,56 +485,63 @@
   });
 
   renderStaffTickets();
-  // ====== CƠ CHẾ ĐỒNG BỘ ĐA THIẾT BỊ QUA FIREBASE CLOUD ======
-  const FIREBASE_API = "https://homerent-rr7-default-rtdb.firebaseio.com/tickets.json";
-  let isSyncing = false;
+// ====== CƠ CHẾ ĐỒNG BỘ ĐA THIẾT BỊ QUA FIREBASE CLOUD ======
+const FIREBASE_API = "https://homerent-rr7-default-rtdb.firebaseio.com/tickets.json";
+let isSyncing = false;
 
-  async function syncFromFirebase() {
-    if (isSyncing) return;
-    try {
-      const res = await fetch(FIREBASE_API);
-      const cloudTickets = await res.json();
-      if (cloudTickets && Array.isArray(cloudTickets)) {
-        const localStr = localStorage.getItem('homerent_tickets');
-        const cloudStr = JSON.stringify(cloudTickets);
-        if (localStr !== cloudStr) {
-          localStorage.setItem('homerent_tickets', cloudStr);
-          if (typeof renderStaffTickets === "function") renderStaffTickets();
-        }
+// 1. Tự động kéo dữ liệu từ Firebase về máy và vẽ lại giao diện
+async function syncFromFirebase() {
+  if (isSyncing) return;
+  try {
+    const res = await fetch(FIREBASE_API);
+    const cloudTickets = await res.json();
+    if (cloudTickets && Array.isArray(cloudTickets) && cloudTickets.length > 0) {
+      const localStr = localStorage.getItem('homerent_tickets');
+      const cloudStr = JSON.stringify(cloudTickets);
+      
+      if (localStr !== cloudStr) {
+        originalSetItem.call(localStorage, 'homerent_tickets', cloudStr);
+        // Gọi tất cả các hàm cập nhật giao diện có thể có trong file
+        if (typeof render === "function") render();
+        if (typeof renderCustomerTickets === "function") renderCustomerTickets();
+        if (typeof renderTickets === "function") renderTickets();
+        if (typeof renderChat === "function") renderChat();
+        if (typeof renderChatMessages === "function") renderChatMessages();
       }
-    } catch (err) {
-      console.warn("Chờ đồng bộ cloud...");
     }
+  } catch (err) {}
+}
+
+// 2. Tự động đẩy dữ liệu lên Firebase khi gửi tin hoặc tạo phiếu
+async function pushToFirebase() {
+  isSyncing = true;
+  try {
+    const localData = JSON.parse(localStorage.getItem('homerent_tickets') || '[]');
+    if (localData.length > 0) {
+      await fetch(FIREBASE_API, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(localData)
+      });
+    }
+  } catch (err) {
+    console.error("Lỗi gửi cloud:", err);
+  } finally {
+    isSyncing = false;
   }
+}
 
-  async function pushToFirebase() {
-    isSyncing = true;
-    try {
-      const localData = JSON.parse(localStorage.getItem('homerent_tickets') || '[]');
-      if (localData.length > 0) {
-        await fetch(FIREBASE_API, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(localData)
-        });
-      }
-    } catch (err) {
-      console.error("Lỗi gửi cloud:", err);
-    } finally {
-      isSyncing = false;
-    }
+// 3. Ghi đè setItem an toàn không bị lặp vô tận
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, val) {
+  originalSetItem.apply(this, arguments);
+  if (key === 'homerent_tickets' && !isSyncing) {
+    pushToFirebase();
   }
+};
 
-  const originalSetItem = localStorage.setItem;
-  localStorage.setItem = function(key, val) {
-    originalSetItem.apply(this, arguments);
-    if (key === 'homerent_tickets') {
-      pushToFirebase();
-    }
-  };
-
-  setInterval(syncFromFirebase, 1500);
-  syncFromFirebase();
+setInterval(syncFromFirebase, 1200);
+syncFromFirebase();
 
 </script>
 </body>
