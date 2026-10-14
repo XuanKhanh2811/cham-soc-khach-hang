@@ -649,14 +649,15 @@
   });
 
   initIdentity();
-renderStaffTickets();
+if (typeof renderCustomerTickets === "function") renderCustomerTickets();
+if (typeof renderChatMessages === "function") renderChatMessages();
 
-  // ====== CƠ CHẾ ĐỒNG BỘ ĐA THIẾT BỊ QUA FIREBASE CLOUD ======
+  // ====== ĐỒNG BỘ CLOUD AN TOÀN TUYỆT ĐỐI (DÙNG CHUNG TẤT CẢ CÁC TRANG) ======
 const FIREBASE_API = "https://homerent-rr7-default-rtdb.firebaseio.com/tickets.json";
 let isSyncing = false;
 
-// 1. Tự động kéo dữ liệu từ Firebase về máy và vẽ lại giao diện
-async function syncFromFirebase() {
+// 1. Tự động kéo dữ liệu từ Firebase về máy
+async function syncFromCloudSafe() {
   if (isSyncing) return;
   try {
     const res = await fetch(FIREBASE_API);
@@ -665,21 +666,27 @@ async function syncFromFirebase() {
       const localStr = localStorage.getItem('homerent_tickets');
       const cloudStr = JSON.stringify(cloudTickets);
       
+      // Nếu dữ liệu trên cloud có sự thay đổi mới thì mới cập nhật và vẽ lại
       if (localStr !== cloudStr) {
         originalSetItem.call(localStorage, 'homerent_tickets', cloudStr);
-        // Gọi tất cả các hàm cập nhật giao diện có thể có trong file
-        if (typeof render === "function") render();
+        
+        // Kiểm tra xem trang hiện tại có hàm nào thì CHỈ CHẠY hàm đó, không bao giờ bị báo lỗi đỏ
         if (typeof renderCustomerTickets === "function") renderCustomerTickets();
+        if (typeof renderStaffTickets === "function") renderStaffTickets();
+        if (typeof renderManagerTickets === "function") renderManagerTickets();
+        if (typeof renderAdminTickets === "function") renderAdminTickets();
         if (typeof renderTickets === "function") renderTickets();
-        if (typeof renderChat === "function") renderChat();
+        if (typeof renderTable === "function") renderTable();
         if (typeof renderChatMessages === "function") renderChatMessages();
+        if (typeof renderChat === "function") renderChat();
+        if (typeof render === "function") render();
       }
     }
   } catch (err) {}
 }
 
-// 2. Tự động đẩy dữ liệu lên Firebase khi gửi tin hoặc tạo phiếu
-async function pushToFirebase() {
+// 2. Tự động đẩy dữ liệu lên Firebase khi gửi tin nhắn hoặc tạo phiếu mới
+async function pushToCloudSafe() {
   isSyncing = true;
   try {
     const localData = JSON.parse(localStorage.getItem('homerent_tickets') || '[]');
@@ -691,24 +698,23 @@ async function pushToFirebase() {
       });
     }
   } catch (err) {
-    console.error("Lỗi gửi cloud:", err);
   } finally {
     isSyncing = false;
   }
 }
 
-// 3. Ghi đè setItem an toàn không bị lặp vô tận
+// 3. Tự động kích hoạt khi có lưu dữ liệu ở trang hiện tại
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, val) {
   originalSetItem.apply(this, arguments);
   if (key === 'homerent_tickets' && !isSyncing) {
-    pushToFirebase();
+    pushToCloudSafe();
   }
 };
 
-setInterval(syncFromFirebase, 1200);
-syncFromFirebase();
-
+// Quét dữ liệu mới mỗi 1.2 giây
+setInterval(syncFromCloudSafe, 1200);
+syncFromCloudSafe();
 </script>
 </body>
 </html>
